@@ -13,7 +13,7 @@ from django.db import connection
 from django.db.models import DecimalField,FloatField
 from rest_framework import viewsets
 from django.core import serializers
-import json
+
 
 
 class Menu(APIView):
@@ -125,28 +125,24 @@ class BestCustomer(APIView):
       def get(self, request, format=None):
 	users = User.objects.annotate(total_spending=Sum(F('orders__menuItem__price')*F('orders__quantity'),output_field=DecimalField())).order_by('-total_spending')[0]
 	serializer = UserSerializer(users)
-	#data = serializers.serialize('json', [users], fields=('username'))
         return Response(serializer.data)
 
 class CustomersAvgSpending(APIView): 
      def get(self, request, format=None):
       	serializer_class = OrderSerializer	
-	querySet = Order.objects.values('owner').annotate(amount=Avg(F('quantity') * F('menuItem__price'),output_field=FloatField()))
-	#serializer = SpendingAvgSerializer(querySet, many=True)	
-	return Response(json.dumps(list(querySet)))
+	querySet = Order.objects.values('owner').annotate(amount=Avg(F('quantity') * F('menuItem__price'),output_field=FloatField()))	
+	return Response(list(querySet))
 
 class CustomersAvgSpendingPerYear(APIView): 
       def get(self, request, year, format=None):
 	querySet = Order.objects.filter(deliveryTime__year = year).values('owner').annotate(amount=Avg(F('quantity') * F('menuItem__price'),output_field=FloatField()))
-	#serializer = OrderSerializer(orders, many=True)
-	return Response(json.dumps(list(querySet)))
+	return Response(list(querySet))
 
 class MonthlyReport(APIView):
       def get(self, request, year,format=None):
       	truncate_date = connection.ops.date_trunc_sql('month', 'deliveryTime')
 	records = Order.objects.filter(deliveryTime__year = year).extra({'month':truncate_date}).values('month').annotate(total_revenue=Sum(F('menuItem__price')*F('quantity'),output_field=FloatField()))
-	#serializer = OrderSerializer(orders, many=True)
-	return Response(json.dumps(list(records)))
+	return Response(list(records))
 
 
 

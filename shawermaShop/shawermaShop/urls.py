@@ -19,7 +19,7 @@ from django.conf.urls import include
 from rest_framework.authtoken import views
 
 urlpatterns = [
- url(r'^shawermaOrder/', include('shawermaOrder.urls')),
+ url(r'^shawermaOrder/', include('shawermaOrder.urls', namespace="shawermaOrder")),
     url(r'^admin/', admin.site.urls),
 
 ]
