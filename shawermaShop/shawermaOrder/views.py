@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import MenuItem, Order
+from .models import MenuItem, Order, MenuItemToOrder
 from .serializers import ShawermaorderSerializer, OrderSerializer,  UserSerializer
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
@@ -60,7 +60,7 @@ class MenuItemDetail(APIView):
 
 
 class OrderList(APIView):
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    permission_classes = (permissions.IsAuthenticated,)
     def get(self, request, format=None):
 	#User views his orders only
         orders = Order.objects.filter(owner=self.request.user)
@@ -122,26 +122,27 @@ class UserDetail(generics.RetrieveAPIView):
     
 
 class BestCustomer(APIView):
-      def get(self, request, format=None):
-	users = User.objects.annotate(total_spending=Sum(F('orders__menuItem__price')*F('orders__quantity'),output_field=DecimalField())).order_by('-total_spending')[0]
-	serializer = UserSerializer(users)
-        return Response(serializer.data)
+      def get(self, request, format=None):	
+	querySet = MenuItemToOrder.objects.values('order__owner').annotate(total_spending=Sum(F('menuItem__price')*F('quantity'),output_field=DecimalField())).order_by('-total_spending')[:1]
+	serializer_class = UserSerializer()
+        return Response(list(querySet))
 
 class CustomersAvgSpending(APIView): 
      def get(self, request, format=None):
       	serializer_class = OrderSerializer	
-	querySet = Order.objects.values('owner').annotate(amount=Avg(F('quantity') * F('menuItem__price'),output_field=FloatField()))	
-	return Response(list(querySet))
+	querySet = MenuItemToOrder.objects.values('order').annotate(orderPrice=Sum(F('quantity') * F('menuItem__price'),output_field=FloatField())).aggregate(amount=Avg(F('orderPrice'),output_field=FloatField()))	
+	return Response(querySet)
 
 class CustomersAvgSpendingPerYear(APIView): 
       def get(self, request, year, format=None):
-	querySet = Order.objects.filter(deliveryTime__year = year).values('owner').annotate(amount=Avg(F('quantity') * F('menuItem__price'),output_field=FloatField()))
+	querySet = MenuItemToOrder.objects.filter(deliveryTime__year = year).values('order__owner').annotate(amount=Avg(F('quantity') * F('menuItem__price'),output_field=FloatField()))
 	return Response(list(querySet))
 
 class MonthlyReport(APIView):
       def get(self, request, year,format=None):
       	truncate_date = connection.ops.date_trunc_sql('month', 'deliveryTime')
-	records = Order.objects.filter(deliveryTime__year = year).extra({'month':truncate_date}).values('month').annotate(total_revenue=Sum(F('menuItem__price')*F('quantity'),output_field=FloatField()))
+	records = MenuItemToOrder.objects.filter(order__deliveryTime__year = year).extra({'month':truncate_date}).values('month').annotate(total_revenue=Sum(F('menuItem__price')*F('quantity'),output_field=FloatField()))
+	#records = MenuItemToOrder.objects.filter(order__deliveryTime__year = year).values('order__deliveryTime__month').annotate(total_revenue=Sum(F('menuItem__price')*F('quantity'),output_field=FloatField()))
 	return Response(list(records))
 
 

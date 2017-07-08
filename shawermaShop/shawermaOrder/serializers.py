@@ -1,4 +1,4 @@
-from .models import MenuItem,Order
+from .models import MenuItem,Order, MenuItemToOrder
 from rest_framework import serializers
 from django.contrib.auth.models import User
  
@@ -8,12 +8,18 @@ class ShawermaorderSerializer(serializers.ModelSerializer):
         model = MenuItem
         fields = ('name', 'price' , 'description')
 
+class MenuItemToOrderSerializer(serializers.ModelSerializer):
+    menuItem = ShawermaorderSerializer()
+    
+    class Meta:
+        model = MenuItemToOrder
+        fields = ('id', 'menuItem' ,'quantity')
+
 class OrderSerializer(serializers.ModelSerializer):
     owner = serializers.ReadOnlyField(source='owner.username')
-
     class Meta:
         model = Order
-        fields = ('id', 'menuItem', 'quantity' , 'address' , 'deliveryTime' , 'owner')
+        fields = ('id', 'menuItems' , 'address' , 'deliveryTime' , 'owner')
 
 class UserSerializer(serializers.ModelSerializer):
     orders = serializers.PrimaryKeyRelatedField(many=True, queryset=Order.objects.all())
@@ -21,6 +27,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'orders')
+
+
 
 
 

@@ -20,18 +20,24 @@ class MenuItem(models.Model):
 
 @python_2_unicode_compatible  
 class Order(models.Model):
-	menuItem = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
-	quantity = models.IntegerField(default = 1)
 	address = models.CharField(max_length=300)
 	deliveryTime =  models.DateTimeField()
-	owner = models.ForeignKey(User, related_name='orders', on_delete=models.CASCADE, default=None, null=True)
-	
+	owner = models.ForeignKey(User, related_name='orders', on_delete=models.CASCADE)
+	menuItems = models.ManyToManyField(MenuItem, through='MenuItemToOrder')
 	def __str__(self):
-		return self.menuItem.name+", "+ `self.quantity` +", "+ self.address+", "+ `self.deliveryTime`
+		return  self.address+", "+ `self.deliveryTime`
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
-	
 
+
+@python_2_unicode_compatible  
+class MenuItemToOrder(models.Model):
+	menuItem = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
+	order = models.ForeignKey(Order, on_delete=models.CASCADE)
+	quantity = models.IntegerField(default = 1)
+
+	def __str__(self):
+		return self.menuItem.name+", "+ `self.quantity` 
