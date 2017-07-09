@@ -130,7 +130,8 @@ class BestCustomer(APIView):
 class CustomersAvgSpending(APIView): 
      def get(self, request, format=None):
       	serializer_class = OrderSerializer	
-	querySet = MenuItemToOrder.objects.values('order').annotate(orderPrice=Sum(F('quantity') * F('menuItem__price'),output_field=FloatField())).aggregate(amount=Avg(F('orderPrice'),output_field=FloatField()))	
+	#querySet = MenuItemToOrder.objects.values('order').annotate(orderPrice=Sum(F('quantity') * F('menuItem__price'),output_field=FloatField())).aggregate(amount=Avg(F('orderPrice'),output_field=FloatField()))	
+	querySet = MenuItemToOrder.objects.values('order__owner').annotate(orderPrice=Avg(F('quantity') * F('menuItem__price'),output_field=FloatField()))
 	return Response(querySet)
 
 class CustomersAvgSpendingPerYear(APIView): 
