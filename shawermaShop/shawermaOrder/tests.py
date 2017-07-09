@@ -76,27 +76,33 @@ class OrderTests(APITestCase):
 
 	#user1 make orders
 	url = reverse('shawermaOrder:orders')
-	factory = APIRequestFactory()
-	request = factory.post(url,{
-		"menuItem": 1,
-		"quantity": 2,
-		"address": "Ramallah",
-		"deliveryTime": "2017-07-01T13:00:00Z"})
-	request.user = user; 
-	response = views.OrderList.as_view()(request)
+	menuItemOrderUrl = reverse('shawermaOrder:menuItemToOrder')
 
-	request = factory.post(url,{
-		"menuItem": 3,
-		"quantity": 1,
+	response = self.client.post(url,{
 		"address": "Ramallah",
-		"deliveryTime": "2017-08-01T13:00:00Z"})
-	request.user = user; 
-	response = views.OrderList.as_view()(request)
+		"deliveryTime": "2017-08-01T13:00:00Z"}, format='json')
+	response = self.client.post(menuItemOrderUrl,{
+		"order": "1",
+		"menuItem": "1",
+		"quantity" : "2"}, format='json')
+	response = self.client.post(menuItemOrderUrl,{
+		"order": "1",
+		"menuItem": "2",
+		"quantity" : "3"}, format='json')
+	
+
+	response = self.client.post(url,{
+		"address": "Ramallah",
+		"deliveryTime": "2017-07-01T13:00:00Z"}, format='json')
+	response = self.client.post(menuItemOrderUrl,{
+		"order": "2",
+		"menuItem": "3",
+		"quantity" : "2"}, format='json')
 
 	
 	#get orders for user1	
 	response = self.client.get(url,format='application/json')	
-	self.assertEqual(json.dumps(response.data), '[{"id": 1, "menuItem": 1, "quantity": 2, "address": "Ramallah", "deliveryTime": "2017-07-01T13:00:00Z", "owner": "user1"}, {"id": 2, "menuItem": 3, "quantity": 1, "address": "Ramallah", "deliveryTime": "2017-08-01T13:00:00Z", "owner": "user1"}]')
+	self.assertEqual(json.dumps(response.data), '[{"id": 1, "menuItems": [1, 2], "address": "Ramallah", "deliveryTime": "2017-08-01T13:00:00Z", "owner": "user1"}, {"id": 2, "menuItems": [3], "address": "Ramallah", "deliveryTime": "2017-07-01T13:00:00Z", "owner": "user1"}]')
 
 	self.client.logout();
 
@@ -111,20 +117,20 @@ class OrderTests(APITestCase):
 
 	#user2 make orders
 	url = reverse('shawermaOrder:orders')
-	factory = APIRequestFactory()
-	request = factory.post(url,{
-		"menuItem": 2,
-		"quantity": 1,
+	response = self.client.post(url,{
 		"address": "Ramallah",
-		"deliveryTime": "2017-09-01T13:00:00Z"})
-	request.user = user; 
-	response = views.OrderList.as_view()(request)
+		"deliveryTime": "2017-09-01T13:00:00Z"}, format='json')
+	response = self.client.post(menuItemOrderUrl,{
+		"order": "3",
+		"menuItem": "3",
+		"quantity" : "3"}, format='json')
+
 
 	
 	#get orders for user2	
 	response = self.client.get(url)
 	
-	self.assertEqual(json.dumps(response.data), '[{"id": 3, "menuItem": 2, "quantity": 1, "address": "Ramallah", "deliveryTime": "2017-09-01T13:00:00Z", "owner": "user2"}]')
+	self.assertEqual(json.dumps(response.data), '[{"id": 3, "menuItems": [3], "address": "Ramallah", "deliveryTime": "2017-09-01T13:00:00Z", "owner": "user2"}]')
 	
 	self.client.logout();
 	
@@ -140,25 +146,25 @@ class OrderTests(APITestCase):
 	#get best customer	
 	url = reverse('shawermaOrder:bestCustomer')
 	response = self.client.get(url)
-	self.assertEqual(response.data, UserSerializer(User.objects.get(username='user1')).data)
+	self.assertEqual(response.data, [{'total_spending': 111.0, 'order__owner': 2}])
 
 	
 	#get total avg spending per customer	
 	url=reverse('shawermaOrder:avgSpendingPerCustomer')
 	response = self.client.get(url)
-	self.assertEqual(response.data,  [{'owner': 2, 'amount': 26.5}, {'owner': 3, 'amount': 15.0}])	
+	self.assertEqual(response.data,  [{'amount': 37.0, 'order__owner': 2}, {'amount': 39.0, 'order__owner': 3}])	
 
 	#get avg spending per customer in 2017
 	url=reverse('shawermaOrder:avgSpendingPerCustomerInYear', args=[2017])
 	response = self.client.get(url)
-	self.assertEqual(response.data, [{'owner': 2, 'amount': 26.5}, {'owner': 3, 'amount': 15.0}])	
+	self.assertEqual(response.data, [{'amount': 37.0, 'order__owner': 2}, {'amount': 39.0, 'order__owner': 3}])	
 	
 
 	
 	#get revenue monthly report
 	url = reverse('shawermaOrder:monthlyReport',args=[2017])
 	response = self.client.get(url)
-	self.assertEqual(response.data, [{'total_revenue': 40.0, 'month': u'2017-07-01'}, {'total_revenue': 13.0, 'month': u'2017-08-01'}, {'total_revenue': 15.0, 'month': u'2017-09-01'}])
+	self.assertEqual(response.data, [{'total_revenue': 26.0, 'month': u'2017-07-01'}, {'total_revenue': 85.0, 'month': u'2017-08-01'}, {'total_revenue': 39.0, 'month': u'2017-09-01'}])
 	self.client.logout();
 	
 	

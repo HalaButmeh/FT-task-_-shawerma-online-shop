@@ -9,11 +9,10 @@ class ShawermaorderSerializer(serializers.ModelSerializer):
         fields = ('name', 'price' , 'description')
 
 class MenuItemToOrderSerializer(serializers.ModelSerializer):
-    menuItem = ShawermaorderSerializer()
     
     class Meta:
         model = MenuItemToOrder
-        fields = ('id', 'menuItem' ,'quantity')
+        fields = ('id', 'menuItem', 'order' ,'quantity')
 
 class OrderSerializer(serializers.ModelSerializer):
     owner = serializers.ReadOnlyField(source='owner.username')

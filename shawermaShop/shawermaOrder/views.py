@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import MenuItem, Order, MenuItemToOrder
-from .serializers import ShawermaorderSerializer, OrderSerializer,  UserSerializer
+from .serializers import ShawermaorderSerializer, OrderSerializer,  UserSerializer, MenuItemToOrderSerializer
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
 from rest_framework import permissions
@@ -23,7 +23,6 @@ class Menu(APIView):
         serializer = ShawermaorderSerializer(menuItems, many=True)
         return Response(serializer.data)
 
-    permission_classes = (permissions.IsAdminUser,)
     def post(self, request, format=None):
         serializer = ShawermaorderSerializer(data=request.data)
         if serializer.is_valid():
@@ -124,7 +123,7 @@ class UserDetail(generics.RetrieveAPIView):
 
 class BestCustomer(APIView):
       def get(self, request, format=None):	
-	querySet = MenuItemToOrder.objects.values('order__owner').annotate(total_spending=Sum(F('menuItem__price')*F('quantity'),output_field=DecimalField())).order_by('-total_spending')[:1]
+	querySet = MenuItemToOrder.objects.values('order__owner').annotate(total_spending=Sum(F('menuItem__price')*F('quantity'),output_field=FloatField())).order_by('-total_spending')[:1]
 	serializer_class = UserSerializer()
         return Response(list(querySet))
 
@@ -132,12 +131,12 @@ class CustomersAvgSpending(APIView):
      def get(self, request, format=None):
       	serializer_class = OrderSerializer	
 	#querySet = MenuItemToOrder.objects.values('order').annotate(orderPrice=Sum(F('quantity') * F('menuItem__price'),output_field=FloatField())).aggregate(amount=Avg(F('orderPrice'),output_field=FloatField()))	
-	querySet = MenuItemToOrder.objects.values('order__owner').annotate(orderPrice=Avg(F('quantity') * F('menuItem__price'),output_field=FloatField()))
-	return Response(querySet)
+	querySet = MenuItemToOrder.objects.values('order__owner').annotate(amount=Avg(F('quantity') * F('menuItem__price'),output_field=FloatField()))
+	return Response(list(querySet))
 
 class CustomersAvgSpendingPerYear(APIView): 
       def get(self, request, year, format=None):
-	querySet = MenuItemToOrder.objects.filter(deliveryTime__year = year).values('order__owner').annotate(amount=Avg(F('quantity') * F('menuItem__price'),output_field=FloatField()))
+	querySet = MenuItemToOrder.objects.filter(order__deliveryTime__year = year).values('order__owner').annotate(amount=Avg(F('quantity') * F('menuItem__price'),output_field=FloatField()))
 	return Response(list(querySet))
 
 class MonthlyReport(APIView):
@@ -146,6 +145,22 @@ class MonthlyReport(APIView):
 	records = MenuItemToOrder.objects.filter(order__deliveryTime__year = year).extra({'month':truncate_date}).values('month').annotate(total_revenue=Sum(F('menuItem__price')*F('quantity'),output_field=FloatField()))
 	#records = MenuItemToOrder.objects.filter(order__deliveryTime__year = year).values('order__deliveryTime__month').annotate(total_revenue=Sum(F('menuItem__price')*F('quantity'),output_field=FloatField()))
 	return Response(list(records))
+
+
+class MenuItemToOrderView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    def get(self, request, format=None):
+        menuItemToOrders = MenuItemToOrder.objects.all()
+        serializer = MenuItemToOrderSerializer(menuItemToOrders, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, format=None):
+        serializer = MenuItemToOrderSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 

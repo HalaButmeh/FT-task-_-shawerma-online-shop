@@ -13,6 +13,7 @@ urlpatterns = [
 	url(r'^avgSpending/$', views.CustomersAvgSpending.as_view(), name="avgSpendingPerCustomer"),
 	url(r'^avgSpendingPerYear/(?P<year>[0-9]+)/$', views.CustomersAvgSpendingPerYear.as_view(), name="avgSpendingPerCustomerInYear"),
 	url(r'^report/(?P<year>[0-9]+)/$', views.MonthlyReport.as_view(),name="monthlyReport"),
+	url(r'^menuItemToOrder/$', views.MenuItemToOrderView.as_view(),name="menuItemToOrder"),
 	
 ]
 
