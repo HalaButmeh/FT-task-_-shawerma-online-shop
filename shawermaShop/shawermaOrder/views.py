@@ -23,6 +23,7 @@ class Menu(APIView):
         serializer = ShawermaorderSerializer(menuItems, many=True)
         return Response(serializer.data)
 
+    permission_classes = (permissions.IsAdminUser,)
     def post(self, request, format=None):
         serializer = ShawermaorderSerializer(data=request.data)
         if serializer.is_valid():
