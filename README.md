@@ -6,5 +6,6 @@ This project provides an online ordering shawerma facility with the following fe
 4. View avg spending per customer 
 5. View avg spending per customer in a given year 
 6. View a mothly report for the revnues in a specific year 
+7. Each customer can view the history of his own orders 
 
 *The used authentication is through token*
